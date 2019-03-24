@@ -1,0 +1,9 @@
+resolver: lts-13.3
+
+packages:
+- .
+
+nix:
+  enable: true
+  packages:
+    - pcre
