@@ -7,3 +7,6 @@ nix:
   enable: true
   packages:
     - pcre
+
+extra-deps:
+- selections-0.2.0.0

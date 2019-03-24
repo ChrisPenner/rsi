@@ -23,10 +23,15 @@ dependencies:
 - base >= 4.7 && < 5
 - text
 - regex-pcre
-- regex
+# - regex-with-pcre
+# - regex
 - bv
 - regex-tdfa-text
+- regex-pcre-text
 - regex-tdfa
+- mtl
+- lens
+- selections
 
 library:
   source-dirs: src
