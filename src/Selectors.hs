@@ -1,8 +1,13 @@
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Selectors where
 
 
-import Text.Regex.PCRE.Heavy
+import Text.Regex.PCRE.Heavy hiding (re)
 import Text.Regex.PCRE.Light
 import Data.List as L
 import Data.Text as T
@@ -10,11 +15,12 @@ import Data.Text.Encoding as T
 import qualified Data.Char as C
 import Control.Monad
 import Control.Monad.State
-import Control.Lens
+import Control.Lens hiding (re, mapping)
 import Data.Bool
 import Data.Functor.Selection
 import Data.Text
 import UnliftIO.Process
+import Control.Arrow
 
 type S = Selection [] Text Text
 type Selector = Text -> Selection [] Text Text
@@ -22,20 +28,26 @@ type Editor = Text -> Text
 type Eacher = [Text] -> [Text]
 type Expander = Selection [] Text Text -> Selection [] Text Text
 
-selecting ::  Selector -> S -> IO S
-selecting f s = pure (s >>= f)
+selecting ::  Selector -> S -> S
+selecting = (=<<)
 
-editing ::  Editor -> S -> IO S
-editing f = pure . fmap f
+mapping ::  Editor -> S -> S
+mapping =  fmap
 
-eaching ::  Eacher -> S -> IO S
-eaching f s = pure $ (partsOf traversed %~ f) s
+eaching ::  Eacher -> S -> S
+eaching f s = (partsOf traversed %~ f) s
 
-shelling :: Text -> [Text] -> S -> IO S
-shelling prog args = traverse (fmap pack . readProcess (unpack prog) (unpack <$> args) . unpack)
+filtering ::  (Text -> Bool) -> Expander
+filtering p = select p
 
-re :: Text -> Selector
-re pattern txt =
+shelling :: Text -> [Text] -> Kleisli IO S S
+shelling prog args = Kleisli $ traverse (fmap pack . readProcess (unpack prog) (unpack <$> args) . unpack)
+
+re ::  Text -> S -> S
+re = selecting . re'
+
+re' :: Text -> Selector
+re' pattern txt =
     let matches = fst <$> scanRanges re' txt
         (t, (_, pairs)) = flip runState (0, []) $ foldM go txt matches >>= \t -> unless (T.null t) (_2 <>= [Left t])
      in Selection pairs
@@ -64,3 +76,6 @@ filtered = pure . T.concat . getSelected
 
 sort' :: Eacher
 sort' = L.sort
+
+chain :: Kleisli IO S S
+chain = (re "\\w+") ^>> shelling "sort" []  >>> mapping T.toUpper ^>> shelling "sort" []
