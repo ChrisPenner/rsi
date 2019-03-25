@@ -31,6 +31,12 @@ filtering p = select p
 shelling :: Text -> [Text] -> Ctx -> IO Ctx
 shelling prog args = traverse (fmap pack . readProcess (unpack prog) (unpack <$> args) . unpack)
 
+shellSubbing :: Text -> [[Either () Text]] -> Ctx -> IO Ctx
+shellSubbing prog args = traverse run
+    where
+        run :: Text -> IO Text
+        run txt = pack <$> readProcess (unpack prog) (T.unpack . T.concat . fmap (either (const txt) id) <$> args) ""
+
 collapse :: Ctx -> Text
 collapse = T.concat . forgetSelection
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Parsing.Parser where
 
 import Prelude hiding (lex)
@@ -12,6 +13,7 @@ import Operators.Combinators
 import Parsing.AST
 import Data.Bifunctor
 import Control.Monad
+import Data.List as L
 import Text.RawString.QQ
 
 type Parser a = Parsec Void Text a
@@ -45,9 +47,21 @@ reP = do
 shP :: Parser Pipeline
 shP = do
     sym "!"
-    cmd <- lex word
-    args <- arg `sepBy` space
+    cmd <- word
+    args <- many (lex arg)
+    space
     return (Sh cmd args)
+
+shSubP :: Parser Pipeline
+shSubP = do
+    sym "!"
+    between (sym "{") (sym "}") $ do
+        cmd <- word
+        args <- many (lex arg)
+        return (ShSub cmd (findSub <$> args))
+  where
+    findSub :: Text -> [Either () Text]
+    findSub = L.intersperse (Left ()) . fmap Right . T.splitOn "?"
 
 mapP :: Parser Pipeline
 mapP = do
@@ -56,11 +70,12 @@ mapP = do
 
 arg :: Parser Text
 arg = quoted <|> word
+
 word :: Parser Text
-word = pack <$> some (noneOf (" \n\t{}|" :: [Char]))
+word = lex $ pack <$> some (noneOf (" \n\t{}|" :: [Char]))
 
 op :: Parser Pipeline
-op = choice [ reP, shP, mapP ]
+op = choice [ reP, try shSubP, shP, mapP ]
 
 pipeline :: Parser [Pipeline]
 pipeline = (op `sepBy1` sym "|")

@@ -23,6 +23,7 @@ runPipeline xs txt = T.concat . forgetSelection <$> interp xs (newSelection [txt
 interp1 :: Pipeline -> Ctx -> IO Ctx
 interp1 (Re pat) ctx = pure . re pat $ ctx
 interp1 (Sh cmd args) ctx = shelling cmd args $ ctx
+interp1 (ShSub cmd args) ctx = shellSubbing cmd args $ ctx
 interp1 (Map xs) ctx = join <$> sequence thing
     where
         thing = do
