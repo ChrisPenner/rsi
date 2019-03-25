@@ -1,0 +1,38 @@
+module Operators.Combinators where
+
+import Data.Text as T
+import Data.Functor.Selection
+import Control.Arrow
+import Control.Lens
+import UnliftIO.Process
+
+type Ctx = Selection [] Text Text
+
+
+type Selector = Text -> Ctx
+type Editor = Text -> Text
+type Eacher = [Text] -> [Text]
+type Expander = Ctx -> Ctx
+
+
+selecting ::  (Text -> Ctx) -> Ctx -> Ctx
+selecting = (=<<)
+
+
+mapping ::  Editor -> Ctx -> Ctx
+mapping =  fmap
+
+eaching ::  Eacher -> Ctx -> Ctx
+eaching f s = (partsOf traversed %~ f) s
+
+filtering ::  (Text -> Bool) -> Expander
+filtering p = select p
+
+shelling :: Text -> [Text] -> Ctx -> IO Ctx
+shelling prog args = traverse (fmap pack . readProcess (unpack prog) (unpack <$> args) . unpack)
+
+collapse :: Ctx -> Text
+collapse = T.concat . forgetSelection
+
+filtered :: Ctx -> Text
+filtered =  T.concat . getSelected

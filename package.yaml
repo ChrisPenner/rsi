@@ -28,6 +28,9 @@ dependencies:
 - lens
 - selections
 - unliftio
+- megaparsec
+- free
+- raw-strings-qq
 
 library:
   source-dirs: src
@@ -53,3 +56,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - text-selections
+    - hspec
