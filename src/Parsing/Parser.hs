@@ -57,7 +57,7 @@ mapP = do
 arg :: Parser Text
 arg = quoted <|> word
 word :: Parser Text
-word = pack <$> some (noneOf (" \n\t" :: [Char]))
+word = pack <$> some (noneOf (" \n\t{}|" :: [Char]))
 
 op :: Parser Pipeline
 op = choice [ reP, shP, mapP ]

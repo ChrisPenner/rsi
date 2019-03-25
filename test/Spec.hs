@@ -5,6 +5,7 @@ import Data.Text as T
 import Parsing.AST
 import Parsing.Parser
 import Text.RawString.QQ
+import Interp.Run
 
 parseCheck :: Text ->  [Pipeline] -> IO ()
 parseCheck pattern expOutput = do
@@ -12,8 +13,17 @@ parseCheck pattern expOutput = do
       Left err -> expectationFailure err
       Right out -> out `shouldBe` expOutput
 
+runOn :: Text -> Text -> Text -> IO ()
+runOn pattern inp expOutput =
+    case parsePipeline pattern of
+      Left err -> expectationFailure err
+      Right pipe -> do
+          out <- runPipeline pipe inp
+          out `shouldBe` expOutput
+
+
 main :: IO ()
-main = hspec $
+main = hspec $ do
     describe "parser" $ do
         describe "commands" $ do
             specify "~" $ do
@@ -31,3 +41,11 @@ main = hspec $
             parseCheck [r|~ 'a\'' | ~ "b\"" |] [Re "a\'", Re "b\""]
         it "should handle escaped quotes" $ do
             parseCheck [r|~ 'a\'' | ~ "b\"" |] [Re "a\'", Re "b\""]
+    describe "run" $ do
+        describe "commands" $ do
+            specify "~" $ do
+                "~ 'a' | ! tr a-z A-Z" `runOn` "bab" $ "bAb"
+            specify "!" $ do
+                "! tr -d o" `runOn` "bamboozled" $ "bambzled"
+            -- specify "%" $ do
+                -- "~ 'a\\w+' | %{ ~ '.$' | ! tr 'a-z' 'A-Z' } | ! rev | ! tr -d \\n" `runOn` "abc defgh ape" $ "Cba defgh Epa"

@@ -14,10 +14,8 @@ type Editor = Text -> Text
 type Eacher = [Text] -> [Text]
 type Expander = Ctx -> Ctx
 
-
 selecting ::  (Text -> Ctx) -> Ctx -> Ctx
 selecting = (=<<)
-
 
 mapping ::  Editor -> Ctx -> Ctx
 mapping =  fmap
@@ -28,6 +26,8 @@ eaching f s = (partsOf traversed %~ f) s
 filtering ::  (Text -> Bool) -> Expander
 filtering p = select p
 
+-- | TODO make more efficient by grouping up calls;
+-- come up with less hacky way to trin newlines
 shelling :: Text -> [Text] -> Ctx -> IO Ctx
 shelling prog args = traverse (fmap pack . readProcess (unpack prog) (unpack <$> args) . unpack)
 
