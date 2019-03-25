@@ -66,4 +66,3 @@ groupUp cs bools@(b: _) = (b, current) : groupUp rString rBools
         (current, rString) = L.splitAt ln cs
         (length -> ln, rBools) = span (==b) bools
 
-
