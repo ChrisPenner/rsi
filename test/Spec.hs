@@ -37,7 +37,9 @@ main = hspec $ do
                 parseCheck "%{ ~ 'a' | %{ ~ 'blah' } }" [Map [Re "a", Map [Re "blah"]]]
             specify "!{}" $ do
                 parseCheck "!{echo a?b d }" [ShSub "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]]
-            -- specify "^" $ do
+            -- specify "?" do
+                -- parseCheck "?! echo a?b d" [ShSub "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]]
+            -- specify "?{}" do
                 -- parseCheck "^(~ 'a' )" [Map [Re "a"]]
         it "should parse pipelines" $ do
             parseCheck "~ 'a' | ~ 'b'" [Re "a", Re "b"]
@@ -51,5 +53,7 @@ main = hspec $ do
                 "~ 'a' | ! tr a-z A-Z" `runOn` "bab" $ "bAb"
             specify "!" $ do
                 "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
+            -- specify "!" $ do
+                -- "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
             -- specify "%" $ do
                 -- "~ 'a\\w+' | %{ ~ '.$' | ! tr 'a-z' 'A-Z' } | ! rev | ! tr -d \\n" `runOn` "abc defgh ape" $ "Cba defgh Epa"

@@ -19,7 +19,6 @@ interp xs = composeAll $ fmap interp1 xs
 runPipeline :: [Pipeline] -> T.Text -> IO T.Text
 runPipeline xs txt = T.concat . forgetSelection <$> interp xs (newSelection [txt])
 
-
 interp1 :: Pipeline -> Ctx -> IO Ctx
 interp1 (Re pat) ctx = pure . re pat $ ctx
 interp1 (Sh cmd args) ctx = shelling cmd args $ ctx
@@ -29,3 +28,4 @@ interp1 (Map xs) ctx = join <$> sequence thing
         thing = do
             c' <- newSelection . pure <$> ctx
             return $ interp xs c'
+

@@ -35,8 +35,8 @@ singleQuoted = quoted' '\''
 doubleQuoted = quoted' '\"'
 quoted = singleQuoted <|> doubleQuoted
 
-parsePipeline :: Text -> Either String [Pipeline]
-parsePipeline pipelineText = first errorBundlePretty $ parse pipeline "" pipelineText
+parsePipeline :: Text -> Either Text [Pipeline]
+parsePipeline pipelineText = first (T.pack . errorBundlePretty) $ parse pipeline "" pipelineText
 
 reP :: Parser Pipeline
 reP = do
