@@ -38,7 +38,7 @@ parsePipeline pipelineText = first errorBundlePretty $ parse pipeline "" pipelin
 
 reP :: Parser Pipeline
 reP = do
-    sym "re"
+    sym "~"
     pattern <- quoted
     return (Re pattern)
 
@@ -49,15 +49,23 @@ shP = do
     args <- arg `sepBy` space
     return (Sh cmd args)
 
+mapP :: Parser Pipeline
+mapP = do
+    sym "%"
+    Map <$> between (sym "{") (sym "}") pipeline
+
 arg :: Parser Text
 arg = quoted <|> word
 word :: Parser Text
 word = pack <$> some (noneOf (" \n\t" :: [Char]))
 
 op :: Parser Pipeline
-op = choice [ reP, shP ]
+op = choice [ reP, shP, mapP ]
 
 pipeline :: Parser [Pipeline]
-pipeline = (op `sepBy1` sym "|") <* eof
+pipeline = (op `sepBy1` sym "|")
+
+ast :: Parser [Pipeline]
+ast = pipeline <* eof
 
 -- test = parseMaybe

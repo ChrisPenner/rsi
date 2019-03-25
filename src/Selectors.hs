@@ -25,6 +25,7 @@ module Selectors where
 -- type S = Selection [] Text Text
 -- type Selector = Text -> Selection [] Text Text
 -- type Editor = Text -> Text
+--
 -- type Eacher = [Text] -> [Text]
 -- type Expander = Selection [] Text Text -> Selection [] Text Text
 

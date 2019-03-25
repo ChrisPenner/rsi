@@ -16,13 +16,18 @@ main :: IO ()
 main = hspec $
     describe "parser" $ do
         describe "commands" $ do
-            specify "re" $ do
-                parseCheck "re 'a'" [Re "a"]
+            specify "~" $ do
+                parseCheck "~ 'a'" [Re "a"]
             specify "!" $ do
                 parseCheck "! tr a-z A-Z" [Sh "tr" ["a-z", "A-Z"]]
+            specify "%" $ do
+                parseCheck "%{ ~ 'a' }" [Map [Re "a"]]
+                parseCheck "%{ ~ 'a' | %{ ~ 'blah' } }" [Map [Re "a", Map [Re "blah"]]]
+            -- specify "^" $ do
+                -- parseCheck "^(~ 'a' )" [Map [Re "a"]]
         it "should parse pipelines" $ do
-            parseCheck "re 'a' | re 'b'" [Re "a", Re "b"]
+            parseCheck "~ 'a' | ~ 'b'" [Re "a", Re "b"]
         it "should handle escaped quotes" $ do
-            parseCheck [r|re 'a\'' | re "b\"" |] [Re "a\'", Re "b\""]
+            parseCheck [r|~ 'a\'' | ~ "b\"" |] [Re "a\'", Re "b\""]
         it "should handle escaped quotes" $ do
-            parseCheck [r|re 'a\'' | re "b\"" |] [Re "a\'", Re "b\""]
+            parseCheck [r|~ 'a\'' | ~ "b\"" |] [Re "a\'", Re "b\""]

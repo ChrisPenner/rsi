@@ -7,5 +7,6 @@ import Data.Text
 data Pipeline
     = Re Text
     | Sh Text [Text]
+    | Map [Pipeline]
 
     deriving (Show, Eq)
