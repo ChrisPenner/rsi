@@ -2,12 +2,8 @@
 module Selectors where
 
 
--- import Text.Regex.TDFA.Text hiding (Regex)
--- import Text.Regex.TDFA hiding (Regex)
--- import Text.Regex.PCRE.Text
 import Text.Regex.PCRE.Heavy
 import Text.Regex.PCRE.Light
-import Data.BitVector as BV
 import Data.List as L
 import Data.Text as T
 import Data.Text.Encoding as T

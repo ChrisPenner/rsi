@@ -22,13 +22,6 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - text
-- regex-pcre
-- regex-with-pcre
-- regex
-- bv
-- regex-tdfa-text
-- regex-pcre-text
-- regex-tdfa
 - pcre-heavy
 - pcre-light
 - mtl
