@@ -18,6 +18,7 @@ import Control.Lens
 import Data.Bool
 import Data.Functor.Selection
 import Data.Text
+import UnliftIO.Process
 
 type S = Selection [] Text Text
 type Selector = Text -> Selection [] Text Text
@@ -25,14 +26,17 @@ type Editor = Text -> Text
 type Eacher = [Text] -> [Text]
 type Expander = Selection [] Text Text -> Selection [] Text Text
 
-selecting ::  Selector -> S -> S
-selecting = (=<<)
+selecting ::  Selector -> S -> IO S
+selecting f s = pure (s >>= f)
 
-editing ::  Editor -> S -> S
-editing = fmap
+editing ::  Editor -> S -> IO S
+editing f = pure . fmap f
 
-eaching ::  Eacher -> S -> S
-eaching f s = (partsOf traversed %~ f) s
+eaching ::  Eacher -> S -> IO S
+eaching f s = pure $ (partsOf traversed %~ f) s
+
+shelling :: Text -> [Text] -> S -> IO S
+shelling prog args = traverse (fmap pack . readProcess (unpack prog) (unpack <$> args) . unpack)
 
 re :: Text -> Selector
 re pattern txt =
@@ -56,11 +60,11 @@ re pattern txt =
 upperCaser :: Editor
 upperCaser = T.map C.toUpper
 
-collapse :: Selection [] Text Text -> Text
-collapse = T.concat . forgetSelection
+collapse :: Selection [] Text Text -> IO Text
+collapse = pure . T.concat . forgetSelection
 
-filtered :: Selection [] Text Text -> Text
-filtered = T.concat . getSelected
+filtered :: Selection [] Text Text -> IO Text
+filtered = pure . T.concat . getSelected
 
 sort' :: Eacher
 sort' = L.sort
