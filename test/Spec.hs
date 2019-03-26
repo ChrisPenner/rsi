@@ -71,3 +71,5 @@ main = hspec $ do
                 "~ 'a\\w+' | ? " `runOn` "violets are blue" $ "are"
             specify "+~" $ do
                 "~ 'banana' | +~ 'apple' | ? " `runOn` "apple banana carrot" $ "applebanana"
+            specify "~-" $ do
+                "~ 'banana' | -~ 'na' | ? " `runOn` "apple banana carrot" $ "ba"

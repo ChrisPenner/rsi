@@ -38,6 +38,9 @@ interp (Free (Re pat next)) = do
 interp (Free (AddRe pat next)) = do
     overCtx (adding (re pat))
     interp next
+interp (Free (RemoveRe pat next)) = do
+    overCtx (removing (re pat))
+    interp next
 interp (Free (Sh cmd args next)) = do
     overCtxIO $ shelling cmd args
     interp next

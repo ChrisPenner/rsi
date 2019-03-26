@@ -25,7 +25,13 @@ adding f = modifySelection (L.concat . fmap go')
         go' :: Either Text Text -> [Either Text Text]
         go' (Left x) = unwrapSelection $ f x
         go' (Right x) = [Right x]
-    -- Selection . L.concat . unify unwrapSelection (pure . Right) . mapUnselected f
+
+removing :: (Text -> Ctx) -> Ctx -> Ctx
+removing f = modifySelection (L.concat . fmap go')
+    where
+        go' :: Either Text Text -> [Either Text Text]
+        go' (Left x) = [Left x]
+        go' (Right x) = unwrapSelection $ invertSelection $  f x
 
 mapping ::  Editor -> Ctx -> Ctx
 mapping =  fmap

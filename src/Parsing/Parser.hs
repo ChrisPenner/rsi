@@ -52,6 +52,12 @@ addP = do
     pattern <- quoted
     return (addRe' pattern)
 
+removeP :: Parser Pipeline
+removeP = do
+    sym "-~"
+    pattern <- quoted
+    return (removeRe' pattern)
+
 shP :: Parser Pipeline
 shP = do
     sym "!"
@@ -88,7 +94,7 @@ word :: Parser Text
 word = lex $ pack <$> some (noneOf (" \n\t{}|" :: [Char]))
 
 op :: Parser Pipeline
-op = choice [ mapP, addP, reP, try shSubP, shP , filterP]
+op = choice [ mapP, addP, removeP, reP, try shSubP, shP , filterP]
 
 pipeline :: Parser Pipeline
 pipeline = do

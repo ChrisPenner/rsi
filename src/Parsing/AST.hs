@@ -16,6 +16,7 @@ type Pipeline = Free PipelineF ()
 data PipelineF r
     = Re Text r
     | AddRe Text r
+    | RemoveRe Text r
     | Sh Text [Text] r
     | ShSub Text [[Either () Text]] r
     | Map r r
@@ -30,6 +31,9 @@ re' pat = liftF $ Re pat ()
 
 addRe' :: Text -> Free PipelineF ()
 addRe' pat = liftF $ AddRe pat ()
+
+removeRe' :: Text -> Free PipelineF ()
+removeRe' pat = liftF $ RemoveRe pat ()
 
 sh' :: Text -> [Text] -> Free PipelineF ()
 sh' cmd args = liftF $ Sh cmd args ()
