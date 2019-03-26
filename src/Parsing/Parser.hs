@@ -46,6 +46,12 @@ reP = do
     pattern <- quoted
     return (re' pattern)
 
+addP :: Parser Pipeline
+addP = do
+    sym "+~"
+    pattern <- quoted
+    return (addRe' pattern)
+
 shP :: Parser Pipeline
 shP = do
     sym "!"
@@ -70,6 +76,11 @@ mapP = do
     single '%'
     map' <$> between (sym "{") (sym "}") pipeline
 
+filterP :: Parser Pipeline
+filterP = do
+    sym "?"
+    return filter'
+
 arg :: Parser Text
 arg = quoted <|> word
 
@@ -77,12 +88,12 @@ word :: Parser Text
 word = lex $ pack <$> some (noneOf (" \n\t{}|" :: [Char]))
 
 op :: Parser Pipeline
-op = choice [ mapP, reP, try shSubP, shP ]
+op = choice [ mapP, addP, reP, try shSubP, shP , filterP]
 
 pipeline :: Parser Pipeline
 pipeline = do
     p <- op
-    try (recurse p) <|> return p
+    recurse p <|> return p
   where
       recurse p = do
           sym "|"

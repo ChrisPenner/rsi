@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Operators.Combinators where
 
 import Data.Text as T
@@ -5,6 +6,7 @@ import Data.Functor.Selection
 import Control.Arrow
 import Control.Lens
 import UnliftIO.Process
+import Data.List as L
 
 type Ctx = Selection [] Text Text
 
@@ -16,6 +18,14 @@ type Expander = Ctx -> Ctx
 
 selecting ::  (Text -> Ctx) -> Ctx -> Ctx
 selecting = (=<<)
+
+adding :: (Text -> Ctx) -> Ctx -> Ctx
+adding f = modifySelection (L.concat . fmap go')
+    where
+        go' :: Either Text Text -> [Either Text Text]
+        go' (Left x) = unwrapSelection $ f x
+        go' (Right x) = [Right x]
+    -- Selection . L.concat . unify unwrapSelection (pure . Right) . mapUnselected f
 
 mapping ::  Editor -> Ctx -> Ctx
 mapping =  fmap

@@ -31,7 +31,7 @@ main = hspec $ do
             specify "~" $ do
                 parseCheck "~ 'a'" $ re' "a"
             -- specify "~-" $ do
-            --     parseCheck "~ 'a'" $ re' "a"
+                -- parseCheck "~ '\\w+' | ~- 'a'" $ re' "a"
             -- specify "~+" $ do
             --     parseCheck "~- 'a'" $ re' "a"
             specify "!" $ do
@@ -41,8 +41,8 @@ main = hspec $ do
             specify "%{}" $ do
                 parseCheck "%{ ~ 'a' }" $ map' (re' "a")
                 parseCheck "%{ ~ 'a' | %{ ~ 'blah' } }" $ map' (re' "a" >> map' (re' "blah"))
-            xspecify "?-" $ do
-                parseCheck "~ 'a'" $ re' "a"
+            specify "?" $ do
+                parseCheck "~ 'a' | ?" $ re' "a" >> filter'
             -- xspecify "?" $ do
             --     parseCheck "?! echo a?b d" [ShSub "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]]
             -- xspecify "?{}" $ do
@@ -60,9 +60,14 @@ main = hspec $ do
         describe "commands" $ do
             specify "~" $ do
                 "~ 'a' | ! tr a-z A-Z" `runOn` "bab" $ "bAb"
+                "~ '\\w+' | ~ '^..' | ! tr a-z A-Z" `runOn` "abcde tuvz" $ "ABcde TUvz"
             specify "!" $ do
                 "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
             specify "!{}" $ do
                 "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
             specify "%{}" $ do
                 "~ 'a\\w+' | %{ ~ '.$' | ! tr 'a-z' 'A-Z' } | ! rev | ! tr -d \\n" `runOn` "abc defgh ape" $ "Cba defgh Epa"
+            specify "?" $ do
+                "~ 'a\\w+' | ? " `runOn` "violets are blue" $ "are"
+            specify "+~" $ do
+                "~ 'banana' | +~ 'apple' | ? " `runOn` "apple banana carrot" $ "applebanana"
