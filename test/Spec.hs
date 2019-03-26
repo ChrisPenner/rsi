@@ -1,4 +1,5 @@
 {-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE OverloadedStrings #-}
 import Test.Hspec
 
 import Data.Text as T
@@ -6,17 +7,18 @@ import Parsing.AST
 import Parsing.Parser
 import Text.RawString.QQ
 import Interp.Run
+import Parsing.AST
 
-parseCheck :: Text ->  [Pipeline] -> IO ()
+parseCheck :: Text -> Pipeline -> IO ()
 parseCheck pattern expOutput = do
     case parsePipeline pattern of
-      Left err -> expectationFailure err
+      Left err -> expectationFailure $ unpack err
       Right out -> out `shouldBe` expOutput
 
 runOn :: Text -> Text -> Text -> IO ()
 runOn pattern inp expOutput =
     case parsePipeline pattern of
-      Left err -> expectationFailure err
+      Left err -> expectationFailure $ unpack err
       Right pipe -> do
           out <- runPipeline pipe inp
           out `shouldBe` expOutput
@@ -27,33 +29,33 @@ main = hspec $ do
     describe "parser" $ do
         describe "commands" $ do
             specify "~" $ do
-                parseCheck "~ 'a'" [Re "a"]
+                parseCheck "~ 'a'" $ re' "a"
             specify "!" $ do
-                parseCheck "! tr a-z A-Z" [Sh "tr" ["a-z", "A-Z"]]
+                parseCheck "! tr a-z A-Z" $ sh' "tr" ["a-z", "A-Z"]
             specify "%" $ do
-                parseCheck "%{ ~ 'a' }" [Map [Re "a"]]
-                parseCheck "%{ ~ 'a' | %{ ~ 'blah' } }" [Map [Re "a", Map [Re "blah"]]]
-            specify "?" $ do
-                parseCheck "%{ ~ 'a' | %{ ~ 'blah' } }" [Map [Re "a", Map [Re "blah"]]]
+                parseCheck "%{ ~ 'a' }" $ map' (re' "a")
+                parseCheck "%{ ~ 'a' | %{ ~ 'blah' } }" $ map' (re' "a" >> map' (re' "blah"))
             specify "!{}" $ do
-                parseCheck "!{echo a?b d }" [ShSub "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]]
+                parseCheck "!{echo a?b d }" $ shSub' "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]
+            -- specify "?" $ do
+            --     parseCheck "~ '\\w+' | ?~ 'a' " $ map' (re' "a" >> map' (re' "blah"))
             -- specify "?" do
                 -- parseCheck "?! echo a?b d" [ShSub "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]]
             -- specify "?{}" do
-                -- parseCheck "^(~ 'a' )" [Map [Re "a"]]
+                -- parseCheck "^(~ 'a' )" [Map [re' "a"]]
         it "should parse pipelines" $ do
-            parseCheck "~ 'a' | ~ 'b'" [Re "a", Re "b"]
+            parseCheck "~ 'a' | ~ 'b'" $ re' "a" >> re' "b"
         it "should handle escaped quotes" $ do
-            parseCheck [r|~ 'a\'' | ~ "b\"" |] [Re "a\'", Re "b\""]
+            parseCheck [r|~ 'a\'' | ~ "b\"" |] $ re' "a\'" >> re' "b\""
         it "should handle escaped quotes" $ do
-            parseCheck [r|~ 'a\'' | ~ "b\"" |] [Re "a\'", Re "b\""]
+            parseCheck [r|~ 'a\'' | ~ "b\"" |] $ re' "a\'" >> re' "b\""
     describe "run" $ do
         describe "commands" $ do
             specify "~" $ do
                 "~ 'a' | ! tr a-z A-Z" `runOn` "bab" $ "bAb"
             specify "!" $ do
                 "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
-            -- specify "!" $ do
-                -- "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
-            -- specify "%" $ do
-                -- "~ 'a\\w+' | %{ ~ '.$' | ! tr 'a-z' 'A-Z' } | ! rev | ! tr -d \\n" `runOn` "abc defgh ape" $ "Cba defgh Epa"
+            specify "!{}" $ do
+                "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
+            specify "%" $ do
+                "~ 'a\\w+' | %{ ~ '.$' | ! tr 'a-z' 'A-Z' } | ! rev | ! tr -d \\n" `runOn` "abc defgh ape" $ "Cba defgh Epa"

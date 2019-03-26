@@ -15,6 +15,8 @@ import Data.Bifunctor
 import Control.Monad
 import Data.List as L
 import Text.RawString.QQ
+import Control.Monad
+import Data.Functor
 
 type Parser a = Parsec Void Text a
 
@@ -35,14 +37,14 @@ singleQuoted = quoted' '\''
 doubleQuoted = quoted' '\"'
 quoted = singleQuoted <|> doubleQuoted
 
-parsePipeline :: Text -> Either Text [Pipeline]
-parsePipeline pipelineText = first (T.pack . errorBundlePretty) $ parse pipeline "" pipelineText
+parsePipeline :: Text -> Either Text Pipeline
+parsePipeline pipelineText = first (T.pack . errorBundlePretty) $ parse ast "" pipelineText
 
 reP :: Parser Pipeline
 reP = do
     sym "~"
     pattern <- quoted
-    return (Re pattern)
+    return (re' pattern)
 
 shP :: Parser Pipeline
 shP = do
@@ -50,7 +52,7 @@ shP = do
     cmd <- word
     args <- many (lex arg)
     space
-    return (Sh cmd args)
+    return (sh' cmd args)
 
 shSubP :: Parser Pipeline
 shSubP = do
@@ -58,15 +60,15 @@ shSubP = do
     between (sym "{") (sym "}") $ do
         cmd <- word
         args <- many (lex arg)
-        return (ShSub cmd (findSub <$> args))
+        return (shSub' cmd (findSub <$> args))
   where
     findSub :: Text -> [Either () Text]
     findSub = L.intersperse (Left ()) . fmap Right . T.splitOn "?"
 
 mapP :: Parser Pipeline
 mapP = do
-    sym "%"
-    Map <$> between (sym "{") (sym "}") pipeline
+    single '%'
+    map' <$> between (sym "{") (sym "}") pipeline
 
 arg :: Parser Text
 arg = quoted <|> word
@@ -75,12 +77,17 @@ word :: Parser Text
 word = lex $ pack <$> some (noneOf (" \n\t{}|" :: [Char]))
 
 op :: Parser Pipeline
-op = choice [ reP, try shSubP, shP, mapP ]
+op = choice [ mapP, reP, try shSubP, shP ]
 
-pipeline :: Parser [Pipeline]
-pipeline = (op `sepBy1` sym "|")
+pipeline :: Parser Pipeline
+pipeline = do
+    p <- op
+    try (recurse p) <|> return p
+  where
+      recurse p = do
+          sym "|"
+          p' <- pipeline
+          return (p >> p')
 
-ast :: Parser [Pipeline]
+ast :: Parser Pipeline
 ast = pipeline <* eof
-
--- test = parseMaybe

@@ -1,5 +1,5 @@
 {-# LANGUAGE ViewPatterns #-}
-module Operators.Re where
+module Operators.Re (re) where
 
 import Text.Regex.PCRE.Heavy hiding (re)
 import Text.Regex.PCRE.Light
@@ -17,11 +17,11 @@ import UnliftIO.Process
 import Control.Arrow
 import Operators.Combinators
 
-re ::  Text -> Ctx -> Ctx
-re = selecting . re'
+-- re ::  Text -> Ctx -> Ctx
+-- re = selecting . re'
 
-re' :: Text -> Selector
-re' pattern txt =
+re :: Text -> Selector
+re pattern txt =
     let matches         = fst <$> scanRanges re' txt
         (t, (_, pairs)) =
             flip runState (0, [])
