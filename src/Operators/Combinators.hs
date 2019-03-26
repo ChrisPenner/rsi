@@ -14,6 +14,7 @@ type Ctx = Selection [] Text Text
 type Selector = Text -> Ctx
 type Editor = Text -> Text
 type Eacher = [Text] -> [Text]
+type EacherIO = [Text] -> IO [Text]
 type Expander = Ctx -> Ctx
 
 selecting ::  (Text -> Ctx) -> Ctx -> Ctx
@@ -36,8 +37,12 @@ removing f = modifySelection (L.concat . fmap go')
 mapping ::  Editor -> Ctx -> Ctx
 mapping =  fmap
 
+eachingIO ::  EacherIO -> Ctx -> IO Ctx
+eachingIO f s = (partsOf traversed %%~ f) s
+
 eaching ::  Eacher -> Ctx -> Ctx
 eaching f s = (partsOf traversed %~ f) s
+
 
 filtering ::  (Text -> Bool) -> Expander
 filtering p = select p

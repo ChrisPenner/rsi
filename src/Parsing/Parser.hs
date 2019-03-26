@@ -79,12 +79,17 @@ shSubP = do
 
 mapP :: Parser Pipeline
 mapP = do
-    single '%'
+    single '^'
     map' <$> between (sym "{") (sym "}") pipeline
+
+eachP :: Parser Pipeline
+eachP = do
+    single '%'
+    each' <$> between (sym "{") (sym "}") pipeline
 
 filterP :: Parser Pipeline
 filterP = do
-    sym "?"
+    sym ">"
     return filter'
 
 arg :: Parser Text
@@ -94,7 +99,7 @@ word :: Parser Text
 word = lex $ pack <$> some (noneOf (" \n\t{}|" :: [Char]))
 
 op :: Parser Pipeline
-op = choice [ mapP, addP, removeP, reP, try shSubP, shP , filterP]
+op = choice [ mapP, eachP, addP, removeP, reP, try shSubP, shP , filterP]
 
 pipeline :: Parser Pipeline
 pipeline = do
@@ -107,4 +112,4 @@ pipeline = do
           return (p >> p')
 
 ast :: Parser Pipeline
-ast = pipeline <* eof
+ast = space *> pipeline <* eof

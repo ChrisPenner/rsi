@@ -20,7 +20,8 @@ data PipelineF r
     | Sh Text [Text] r
     | ShSub Text [[Either () Text]] r
     | Map r r
-    | Filter  r
+    | Filter r
+    | Each r r
     deriving (Eq, Show, Functor)
 
 deriving instance {-# OVERLAPPING #-} (forall a. Show a => Show (PipelineF a)  => Show (Free PipelineF a))
@@ -46,6 +47,10 @@ map' p = Free $ Map p (Pure ())
 
 filter' :: Free PipelineF ()
 filter' = liftF $ Filter ()
+
+each' :: Free PipelineF () -> Free PipelineF ()
+each' p = Free $ Each p (Pure ())
+
 
 -- action :: Pipeline
 -- action = re' "abc" >> sh' "blah" [] >> map' (re' "thing")

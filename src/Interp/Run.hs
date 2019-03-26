@@ -1,3 +1,4 @@
+{-# LANGUAGE ViewPatterns #-}
 module Interp.Run where
 
 import Parsing.AST
@@ -11,6 +12,7 @@ import Operators.Re
 import Data.Functor.Selection
 import Control.Monad.Free
 import Control.Monad.State
+import Data.List as L
 
 runPipeline :: Pipeline -> T.Text -> IO T.Text
 runPipeline p txt = fmap collapse . flip execStateT (pure txt) $ interp p
@@ -49,6 +51,12 @@ interp (Free (ShSub cmd args next)) = do
     interp next
 interp (Free (Map p next)) = do
     lifting p
+    interp next
+interp (Free (Each p next)) = do
+    ctx <- get
+    let go :: [T.Text] -> IO [T.Text]
+        go (T.unlines -> txt) = fmap (L.concat . fmap T.lines . getSelected) . execStateT (interp p) $ pure txt
+    overCtxIO (eachingIO go)
     interp next
 interp (Free (Filter next)) = do
     overCtx (newSelection . getSelected)

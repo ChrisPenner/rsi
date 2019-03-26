@@ -30,21 +30,23 @@ main = hspec $ do
         describe "commands" $ do
             specify "~" $ do
                 parseCheck "~ 'a'" $ re' "a"
-            -- specify "~-" $ do
-                -- parseCheck "~ '\\w+' | ~- 'a'" $ re' "a"
-            -- specify "~+" $ do
-            --     parseCheck "~- 'a'" $ re' "a"
+            specify "+~" $ do
+                parseCheck "+~ 'a'" $ addRe' "a"
+            specify "-~" $ do
+                parseCheck " -~ 'a'" $ removeRe' "a"
             specify "!" $ do
                 parseCheck "! tr a-z A-Z" $ sh' "tr" ["a-z", "A-Z"]
             specify "!{}" $ do
                 parseCheck "!{echo a?b d }" $ shSub' "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]
+            specify "^{}" $ do
+                parseCheck "^{ ~ 'a' }" $ map' (re' "a")
+                parseCheck "^{ ~ 'a' | ^{ ~ 'blah' } }" $ map' (re' "a" >> map' (re' "blah"))
             specify "%{}" $ do
-                parseCheck "%{ ~ 'a' }" $ map' (re' "a")
-                parseCheck "%{ ~ 'a' | %{ ~ 'blah' } }" $ map' (re' "a" >> map' (re' "blah"))
-            specify "?" $ do
-                parseCheck "~ 'a' | ?" $ re' "a" >> filter'
-            -- xspecify "?" $ do
-            --     parseCheck "?! echo a?b d" [ShSub "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]]
+                parseCheck "%{ ~ 'a' }" $ each' (re' "a")
+            specify ">" $ do
+                parseCheck "~ 'a' | >" $ re' "a" >> filter'
+            -- xspecify "?!" $ do
+                -- parseCheck "" [ShSub "echo" [[ Right "a", Left (), Right "b" ], [Right "d"]]]
             -- xspecify "?{}" $ do
             --     parseCheck "~ '\\w+' | ?~ 'a' " $ map' (re' "a" >> map' (re' "blah"))
             -- xspecify "?{}" $ do
@@ -52,8 +54,6 @@ main = hspec $ do
         describe "pipelines" $ do
             it "should parse pipelines" $ do
                 parseCheck "~ 'a' | ~ 'b'" $ re' "a" >> re' "b"
-            it "should handle escaped quotes" $ do
-                parseCheck [r|~ 'a\'' | ~ "b\"" |] $ re' "a\'" >> re' "b\""
             it "should handle escaped quotes" $ do
                 parseCheck [r|~ 'a\'' | ~ "b\"" |] $ re' "a\'" >> re' "b\""
     describe "run" $ do
@@ -65,11 +65,13 @@ main = hspec $ do
                 "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
             specify "!{}" $ do
                 "!{echo -n a?b d }" `runOn` "thing" $ "athingb d"
+            specify "^{}" $ do
+                "~ 'a\\w+' | ^{ ~ '.$' | ! tr 'a-z' 'A-Z' } | ! rev | ! tr -d \\n" `runOn` "abc defgh ape" $ "Cba defgh Epa"
             specify "%{}" $ do
-                "~ 'a\\w+' | %{ ~ '.$' | ! tr 'a-z' 'A-Z' } | ! rev | ! tr -d \\n" `runOn` "abc defgh ape" $ "Cba defgh Epa"
-            specify "?" $ do
-                "~ 'a\\w+' | ? " `runOn` "violets are blue" $ "are"
+                "~ '\\w+' | %{ ! sort }" `runOn` "[how you doin]" $ "[doin how you]"
+            specify ">" $ do
+                "~ 'a\\w+' | > " `runOn` "violets are blue" $ "are"
             specify "+~" $ do
-                "~ 'banana' | +~ 'apple' | ? " `runOn` "apple banana carrot" $ "applebanana"
+                "~ 'banana' | +~ 'apple' | > " `runOn` "apple banana carrot" $ "applebanana"
             specify "~-" $ do
-                "~ 'banana' | -~ 'na' | ? " `runOn` "apple banana carrot" $ "ba"
+                "~ 'banana' | -~ 'na' | > " `runOn` "apple banana carrot" $ "ba"
