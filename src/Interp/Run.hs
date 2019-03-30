@@ -17,6 +17,9 @@ import Data.List as L
 runPipeline :: Pipeline -> T.Text -> IO T.Text
 runPipeline p txt = fmap collapse . flip execStateT (pure txt) $ interp p
 
+runPipeline' :: Pipeline -> Ctx -> IO Ctx
+runPipeline' p ctx = execStateT (interp p) ctx
+
 overCtx :: (Ctx -> Ctx) -> StateT Ctx IO ()
 overCtx = modify
 

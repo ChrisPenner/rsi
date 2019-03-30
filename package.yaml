@@ -46,6 +46,18 @@ executables:
     dependencies:
     - text-selections
 
+  rsi:
+    main:                Main.hs
+    source-dirs:         rsi
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - text-selections
+    - brick
+    - vty
+
 tests:
   text-selections-test:
     main:                Spec.hs
