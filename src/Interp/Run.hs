@@ -1,67 +1,85 @@
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Interp.Run where
 
-import Parsing.AST
-import qualified Data.Text as T
-import Data.Foldable
+
+import Control.Exception hiding (throwIO)
+import Control.Lens hiding (re)
 import Control.Monad
-import Operators.Combinators
 import Control.Monad
-import Control.Monad.Reader
-import Operators.Re
-import Data.Functor.Selection
+import Control.Monad.Except
 import Control.Monad.Free
-import Control.Monad.State
+import Control.Monad.Reader
+import Data.Foldable
+import Data.Functor.Selection
 import Data.List as L
+import Operators.Combinators
+import Operators.Re
+import Parsing.AST
+import System.Exit
+import UnliftIO.Process
+import UnliftIO.Exception
+import qualified Data.Text as T
+type P a = IO a
 
-runPipeline :: Pipeline -> T.Text -> IO T.Text
-runPipeline p txt = fmap collapse . flip execStateT (pure txt) $ interp p
+eachingP ::  ([T.Text] -> P [T.Text]) -> Ctx -> P Ctx
+eachingP f s = (partsOf traversed %%~ f) s
 
-runPipeline' :: Pipeline -> Ctx -> IO Ctx
-runPipeline' p ctx = execStateT (interp p) ctx
+shellingP :: T.Text -> [T.Text] -> Ctx -> P Ctx
+shellingP prog args ctx = do
+  traverse (runOrError prog args) ctx
 
-overCtx :: (Ctx -> Ctx) -> StateT Ctx IO ()
-overCtx = modify
+runOrError :: T.Text -> [ T.Text ] -> T.Text -> P T.Text
+runOrError prog args txt = do
+      (code, out, err) <- readProcessWithExitCode (T.unpack prog) (T.unpack <$> args) (T.unpack txt)
+      case code of
+        ExitSuccess -> return (T.pack out)
+        ExitFailure _ -> throwString err
 
-overCtxIO :: (Ctx -> IO Ctx) -> StateT Ctx IO ()
-overCtxIO f = get >>= liftIO . f >>= put
+shellSubbingP :: T.Text -> [[Either () T.Text]] -> Ctx -> P Ctx
+shellSubbingP prog args ctx = traverse run ctx
+    where
+        run :: T.Text -> P T.Text
+        run txt = runOrError prog (T.concat . fmap (either (const txt) id) <$> args) ""
 
-lifting :: Pipeline -> StateT Ctx IO ()
-lifting p = do
-    pre <- get
-    liftIO (traverse (lifting' p) pre) >>= put
+runPipeline :: Pipeline -> T.Text -> P T.Text
+runPipeline p txt = fmap collapse $ interp p (pure txt)
+
+runPipeline' :: Pipeline -> Ctx -> P Ctx
+runPipeline' p ctx = interp p ctx
+
+overCtx :: (Ctx -> Ctx) -> Ctx -> P Ctx
+overCtx = fmap pure
+
+overCtxIO :: (Ctx -> P Ctx) -> Ctx -> P Ctx
+overCtxIO f ctx = f ctx
+
+lifting :: Pipeline -> Ctx -> P Ctx
+lifting p pre = traverse (lifting' p) pre
   where
-    lifting' :: Pipeline -> T.Text -> IO T.Text
+    lifting' :: Pipeline -> T.Text -> P T.Text
     lifting' f txt =
-        let lifted = newSelection . pure $ txt
-            in fmap collapse . liftIO $ flip execStateT lifted $ interp f
+      let lifted = newSelection.pure $ txt
+      in fmap collapse.interp f $ lifted
 
-interp :: Pipeline -> StateT Ctx IO ()
-interp (Free (Re pat next)) = do
-    overCtx (selecting (re pat))
-    interp next
-interp (Free (AddRe pat next)) = do
-    overCtx (adding (re pat))
-    interp next
-interp (Free (RemoveRe pat next)) = do
-    overCtx (removing (re pat))
-    interp next
-interp (Free (Sh cmd args next)) = do
-    overCtxIO $ shelling cmd args
-    interp next
-interp (Free (ShSub cmd args next)) = do
-    overCtxIO $ shellSubbing cmd args
-    interp next
-interp (Free (Map p next)) = do
-    lifting p
-    interp next
-interp (Free (Each p next)) = do
-    ctx <- get
-    let go :: [T.Text] -> IO [T.Text]
-        go (T.unlines -> txt) = fmap (L.concat . fmap T.lines . getSelected) . execStateT (interp p) $ pure txt
-    overCtxIO (eachingIO go)
-    interp next
-interp (Free (Filter next)) = do
-    overCtx (newSelection . getSelected)
-    interp next
-interp (Pure ()) = return ()
+interp :: Pipeline -> Ctx -> P Ctx
+interp (Free (Re pat next)) ctx =
+  overCtx (selecting (re pat)) ctx >>= interp next
+interp (Free (AddRe pat next)) ctx = do
+    overCtx (adding (re pat)) ctx >>= interp next
+interp (Free (RemoveRe pat next)) ctx = do
+    overCtx (removing (re pat)) ctx >>= interp next
+interp (Free (Sh cmd args next)) ctx = do
+  overCtxIO (shellingP cmd args) ctx >>= interp next
+interp (Free (ShSub cmd args next)) ctx = do
+    overCtxIO (shellSubbingP cmd args) ctx >>= interp next
+interp (Free (Map p next)) ctx = do
+  lifting p ctx >>= interp next
+interp (Free (Each p next)) ctx = do
+    let go :: [T.Text] -> P [T.Text]
+        go (T.unlines -> txt) = fmap (L.concat . fmap T.lines . getSelected) $ interp p $ pure txt
+    overCtxIO (eachingP go) ctx >>= interp next
+interp (Free (Filter next)) ctx = do
+    overCtx (newSelection . getSelected) ctx >>= interp next
+interp (Pure ()) ctx = return ctx
