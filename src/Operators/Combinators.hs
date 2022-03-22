@@ -21,14 +21,14 @@ selecting ::  (Text -> Ctx) -> Ctx -> Ctx
 selecting = (=<<)
 
 adding :: (Text -> Ctx) -> Ctx -> Ctx
-adding f = modifySelection (L.concat . fmap go')
+adding f = withUnwrapped (L.concat . fmap go')
     where
         go' :: Either Text Text -> [Either Text Text]
         go' (Left x) = unwrapSelection $ f x
         go' (Right x) = [Right x]
 
 removing :: (Text -> Ctx) -> Ctx -> Ctx
-removing f = modifySelection (L.concat . fmap go')
+removing f = withUnwrapped (L.concat . fmap go')
     where
         go' :: Either Text Text -> [Either Text Text]
         go' (Left x) = [Left x]
@@ -59,7 +59,7 @@ shellSubbing prog args = traverse run
         run txt = pack <$> readProcess (unpack prog) (T.unpack . T.concat . fmap (either (const txt) id) <$> args) ""
 
 collapse :: Ctx -> Text
-collapse = T.concat . forgetSelection
+collapse = T.concat . runSelection
 
 filtered :: Ctx -> Text
 filtered =  T.concat . getSelected

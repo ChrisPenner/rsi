@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 module Parsing.AST where
 
 import Control.Monad.Free
@@ -23,9 +24,6 @@ data PipelineF r
     | Filter r
     | Each r r
     deriving (Eq, Show, Functor)
-
-deriving instance {-# OVERLAPPING #-} (forall a. Show a => Show (PipelineF a)  => Show (Free PipelineF a))
-deriving instance {-# OVERLAPPING #-} (forall a. Eq a => Eq (PipelineF a)  => Eq (Free PipelineF a))
 
 re' :: Text -> Free PipelineF ()
 re' pat = liftF $ Re pat ()

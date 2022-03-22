@@ -3,7 +3,6 @@
 module App where
 
 import           Brick
-import           Brick.Markup
 import           Brick.Widgets.Border
 import           Brick.Widgets.Edit
 import           Control.Monad.IO.Class
@@ -51,12 +50,12 @@ renderApp S {rendered = r, editor' = e, contents = c, err = err'} =
     t         = fold $ getEditContents e
 
     errWidget = case err' of
-        Just errText -> markup (errText @? "error") <=> hBorder
+        Just errText -> ("error" `withAttr` txt errText) <=> hBorder
         Nothing      -> emptyWidget
 
     txtWidget
         | T.null t = txt c
-        | otherwise = markup . fold $ unify (@? "unselected") (@? "selected") r
+        | otherwise = hBox $ unify (withAttr "unselected" . txt) (withAttr "selected" . txt) r
 
     editLine = renderEditor (txt.head) True e <=> hBorder
 
